@@ -1,0 +1,18 @@
+{
+  "name": "attendance-station",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
+  "dependencies": {
+    "gt511c3": "^0.1.1",
+    "node": "4.6.0",
+    "socket.io": "",
+    "express": ""
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Adrian Balcan",
+  "license": "ISC"
+}

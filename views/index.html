@@ -1,0 +1,289 @@
+<html>
+<head>
+  <link href="/css/style.css" rel="stylesheet" type="text/css"\>
+  <link href="/css/font-awesome.min.css" rel="stylesheet" type="text/css"\>
+</head>
+<body>
+  <div class="notify" id="ok">
+    <h1>OK <div id="id"></div></h1>
+    <div id="id_details_table1"></div>
+  </div>
+
+  <div class="notify" id="scanned">
+    <h1>OK Acest cod a fost scanat deja!<div id="scanned_id"></div></h1>
+    <div id="id_details_table2"></div>
+  </div>      
+
+  <div class="notify" id="err_cid"><h1>EROARE COD!</br>Scaneaza din nou!</h1></div>
+  <div class="notify" id="disconnected"><h1>EROARE CONEXIUNE!</br>Nu exista conexiune cu serverul!</h1></div>
+  <div class="notify" id="scanner_disconnected"><h1>EROARE SCANNER!</br>Nu exista conexiune cu scanerul!</h1></div>
+  <script src="socket.io/socket.io.js"></script>
+  <script src="js/jquery.min.js"></script>
+  <script type="text/javascript" src="js/underscore-min1.3.3.js"></script>
+
+  <script type="text/template" id="tpl-productie">
+            <table class="table">
+                <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Model</th>
+                    <th>Culoare Interior</th>
+                    <th>Culoare Exterior</th>
+                </tr>
+                </thead>
+                <tbody>
+                <% _.each( target, function(i) {%>
+                    <tr<%if (i.urgent){ %> class="urgent"<% } %>>
+                        <td><h1><%= i.id %></h1></td>
+                        <td><%= i.model %></td>
+                        <td><%= i.culoare_interior %></td>
+                        <td><%= i.culoare_exterior %></td>
+                    </tr>
+		    <tr><td class="<% if (i.nota){ %>nota<% } else { %>nota_empty<% } %>" colspan="4"><%= i.nota %></td></tr>
+                <% }); %>
+                </tbody>
+            </table>
+    </script>
+    <script type="text/template" id="tpl-done">
+            <table class="table">
+                <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Scanat</th>
+                </tr>
+                </thead>
+                <tbody>
+                <% _.each( target, function(i) {%>
+                    <tr<%if (i.urgent){ %> class="urgent"<% } %>>
+                        <td><h1><%= i.id %></h1></td>
+                        <td><%= i.scanat %></td>
+                    </tr>
+                <% }); %>
+                </tbody>
+            </table>
+    </script>
+    <script type="text/template" id="tpl-id_details_table">
+		      <table class="status_table">
+                      <% _.each( target, function(i) {%>
+		      <tbody>
+		      <tr>
+		        <th class="text-center">VACUM</th>
+		        <th class="text-center">STICLA</th>
+		        <th class="text-center">VITRALII</th>
+		        <th class="text-center">SIGILARE STICLA</th>
+		        <th class="text-center">UMPLUTURA</th>
+		        <th class="text-center">DECUPARE</th>
+		        <th class="text-center">CNC</th>
+		        <th class="text-center">PRESA</th>
+		        <th class="text-center">AMBALARE</th>
+		      </tr>
+		      <tr>
+                      <% 
+                      function check(s){
+                        if(s){  
+		          return '<li style="color: green"><i class="fa fa-check fa-2x"></i></li>'
+                        } else {
+                          return '<li style="color: red"><i class="fa fa-times fa-2x"></i></li>'
+                        }
+                      }
+                      %>
+		          <td class="text-center"><%=check(i.w)%></td>
+		          <td class="text-center"><%=check(i.s)%></td>
+		          <td class="text-center"><%=check(i.v)%></td>
+		          <td class="text-center"><%=check(i.ss)%></td>
+		          <td class="text-center"><%=check(i.u)%></td>
+		          <td class="text-center"><%=check(i.d)%></td>
+		          <td class="text-center"><%=check(i.c)%></td>
+		          <td class="text-center"><%=check(i.p)%></td>
+		          <td class="text-center"><%=check(i.a)%></td>
+		      </tr>
+		      </tbody></table>
+                      <table class="details_table">
+                        <tr>
+                          <td>MODEL:</td>
+                          <td><%= i.Model %></td>
+                          <td class="middle_space"></td>
+                          <td>UMPLUTURA:</td>
+                          <td><%= i.Umplutura1_qty +'x '+ i.Umplutura1 %></td>
+                        </tr>
+                        <tr>
+                          <td>CULOARE INTERIOR:</td>
+                          <td><%= i.Culoare_Interior %></td>
+                          <td class="middle_space"></td>
+                          <td></td>
+                          <td><%= i.Umplutura2_qty +'x '+ i.Umplutura2 %></td>
+                        </tr>
+                        <tr>
+                          <td>CULOARE EXTERIOR:</td>
+                          <td><%= i.Culoare_Exterior %></td>
+                          <td class="middle_space"></td>
+                          <td></td>
+                          <td><%= i.Umplutura3_qty +'x '+ i.Umplutura3 %></td>
+                        </tr>
+                        <tr>
+                          <td>TIP:</td>
+                          <td><%= i.Tip %></td>
+                          <td class="middle_space"></td>
+                          <td class="urgent" <%if(i.urgent == 0){ %> style="background-color: #fff;" <% } %> >URGENTA</td>
+                          <td><%= i.Umplutura3_qty +'x '+ i.Umplutura4 %></td>
+                        </tr>
+                        <tr>
+                          <td></td>
+                          <td></td>
+                          <td class="middle_space"></td>
+                          <td></td>
+                          <td><%= i.Umplutura5_qty +'x '+ i.Umplutura5 %></td>
+                        </tr>
+                        <tr>
+                          <td>STICLA:</td>
+                          <td colspan="4" style="text-align: left"><%= i.Sticla %></td>
+                        </tr>
+                      </table>
+                      <table class="nota_table">
+                        <tr>
+                          <td>NOTA:</td>
+                          <td style="text-align: left"><%= i.nota %></td>
+                        </tr>
+                        <% }); %>
+                      </table>
+    </script>
+<div id="todo">
+<div class="title">IN PRODUCTIE</div>
+<table id="production_table">
+</table>
+</div>
+
+<div id="done">
+<div class="title">FINALIZATE</div>
+<table id="done_table">
+</table>
+</div>
+
+<div id="footer">
+Conectat: Sectia Ambalare
+</div>
+<input id="data" style="width:200px;" autocomplete="off"  autofocus/>
+	<script>
+	$(function(){
+		// when the client clicks SEND
+		$(document).keypress(function(e) {
+			if(e.which == 13) {
+				data = $('#data').val();
+				console.log(data);
+				if (/^\d+$/.test(data)){
+					socket.emit('cid',data);
+				} else {
+					$('#err_cid').show().delay(3000).hide(500);
+				}
+				$('#data').val('');
+				document.getElementById("data").focus();
+			}
+		});
+	});
+
+        function productionTable(rawData) {
+            var data = { target:rawData };
+            var template = _.template( $("#tpl-productie").text() );
+            $("#production_table").html( template(data) );
+            $("a").removeClass("btn-warning");
+            $("#html").addClass("btn-warning");
+	}
+        function doneTable(rawData) {
+            var data = { target:rawData };
+            var template = _.template( $("#tpl-done").text() );
+            $("#done_table").html( template(data) );
+	}
+        function idDetailsTable(rawData) {
+            console.log(rawData);
+            var data = { target:rawData };
+            var template = _.template( $("#tpl-id_details_table").text() );
+            $("#id_details_table1").html( template(data) );
+            $("#id_details_table2").html( template(data) );
+        }
+var ok;
+var err_cid;
+var scanned;
+	var socket = io.connect('http://'+window.location.hostname, {secure: true});
+	socket.on('connect', function () {
+		console.log("connected");
+		$('#disconnected').hide();
+	});
+	socket.on('disconnect', function () {
+		console.log("disconnected");
+		$('#disconnected').show();
+	});
+	socket.on('display_cid', function (data) {
+                        console.log(data);
+    			console.log('clean: err: '+err_cid+', ok: '+ok);
+				clearTimeout(err_cid);
+    			if(err_cid){
+				$('#err_cid').hide();
+				clearTimeout(err_cid);
+				console.log('cleaning err_cid: '+err_cid);
+			}
+    			if(ok){
+				$('#ok').hide();
+				clearTimeout(ok);
+				console.log('cleaning ok: '+ok);
+			}
+    			if(scanned){
+				$('#scanned').hide();
+				clearTimeout(scanned);
+				console.log('cleaning scanned: '+scanned);
+			}
+			console.log(data);
+		if(data.status == 1){
+			$('#id').html(data.cid);
+                        idDetailsTable(data.id_details);
+			$('#ok').show();
+    			ok = setTimeout(function() { $('#ok').hide() }, 2000);
+			console.log("ok :"+ok);
+			$('#container').html(data.htmldata);
+		} else if(data.status == 2) {
+			$('#scanned_id').html(data.cid);
+                        idDetailsTable(data.id_details);
+			$('#scanned').show();
+    			scanned = setTimeout(function() { $('#scanned').hide() }, 10000);
+			console.log("scanned :"+scanned);
+			$('#container').html(data.htmldata);
+		} else {
+			$('#err_cid').show();
+    			err_cid = setTimeout(function() { $('#err_cid').hide() }, 5000);
+			console.log("err :"+err_cid);
+		}
+	});
+	socket.on('identify-ok', function(id){
+		console.log('identify-ok: '+id);
+	});
+	socket.on('identify-err', function(id){
+		console.log('Nu am putut citi corect, te rog mai incearca odata!');
+	});
+	socket.on('display-release', function(id){
+		console.log('Ridica degetul de pe cititor, te rog!');
+	});
+	socket.on('enroll-identify', function (data) {
+		console.log('enroll_identify');
+	});
+	socket.on('enroll-identify-ok', function (data) {
+		console.log('enroll_identify-ok');
+	});
+	socket.on('enroll-identify-err', function (data) {
+		console.log('enroll_identify-err: fingerprint found in db');
+	});
+	socket.on('enroll', function (data) {
+		console.log('enroll: '+data);
+	});
+	socket.on('clear', function () {
+		console.log('clear');
+	});
+	socket.on('table_production_json', function (data) {
+		console.log(data);
+                productionTable(data);
+	});
+	socket.on('table_done_json', function (data) {
+		console.log(data);
+                doneTable(data);
+	});
+	</script>
+	</body>
+</html>
