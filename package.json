@@ -5,8 +5,9 @@
   "main": "app.js",
   "dependencies": {
     "gt511c3": "^0.1.1",
-    "node": "4.6.0",
     "socket.io": "",
+    "async": "",
+    "promise": "",
     "express": ""
   },
   "devDependencies": {},
