@@ -128,12 +128,12 @@ var scanned;
 		}
 	});
 	socket.on('identify-ok', function(id){
-                  
 		console.log('identify-ok: '+id);
 	    notify("green", "Bine ai venit "+id);
 	});
 	socket.on('identify-err', function(id){
 		console.log('Nu am putut citi corect, te rog mai incearca odata!');
+	    notify("red", "Amprenta neidentificata! Incearca din nou!");
 	});
 	socket.on('display-release', function(id){
 		console.log('Ridica degetul de pe cititor, te rog!');
@@ -162,13 +162,18 @@ var scanned;
 		console.log(data);
                 doneTable(data);
 	});
+var clear;
     function notify(color, msg){
-        $('#text').css("background-color", color);
+        clearTimeout(clear);
+        $('#notify').css("background-color", color);
 	$('#text').html(msg);
 	$('#notify').show();
     }
+
     function clearNotify(){
-	$('#notify').hide();
+	  clear = setTimeout(function(){
+	    $('#notify').hide();
+	}, 3000);
     }
 	</script>
 	</body>

@@ -20,7 +20,7 @@ app.get('/enroll', function(req, res) {
 console.log(enroll);
 });
 
-var fps = new GT511C3('/dev/ttyS0', {
+var fps = new GT511C3('/dev/ttyAMA0', {
     baudrate: 115200
         //baudrate: 57600,
         //baudrate: 38400,
