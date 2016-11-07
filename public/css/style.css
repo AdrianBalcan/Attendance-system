@@ -5,6 +5,9 @@ body {
     font-family: Verdana;
     font-variant: small-caps; 
     background-color: #202020;
+    text-align: center;
+    vertical-align: middle;
+    color: white;
 }
 
 h1 {
@@ -84,7 +87,7 @@ tr {
     clear:both;
     text-align:center;
     padding:2px;
-    z-index:2; 	 
+    z-index:12; 	 
 }
 			#disconnected {
     				z-index: 11;		
@@ -95,11 +98,6 @@ tr {
     				z-index: 10;		
 				background-color: orange;
 				display: none;
-    			}
-			#notify {
-				display: none;
-    				z-index: 10;		
-				background-color: #202020;
     			}
 			#scanned {
 				display: none;
@@ -112,6 +110,9 @@ tr {
 				background-color: red;
     			}
 			.notify {
+				display: none;
+    				z-index: 10;		
+				background-color: #202020;
 				position: fixed;
     				left: 0px;
     				top: 0px;
@@ -126,3 +127,22 @@ tr {
 				font-weight: bold;
 				font-size: xx-large;
     			}
+			#enroll {
+				background-color: red;
+				position: fixed;
+    				left: 0px;
+    				top: 0px;
+    				z-index: 11;		
+    				min-height: 25%; 
+    				min-width: 100%; 
+				text-align: center;
+				vertical-align: middle;
+				line-height: 90px;  
+				color: white;
+				font-family: Verdana;
+				font-weight: bold;
+				font-size: xx-large;
+    			}
+			#notifyText {
+				margin-top: 30%;
+  			}

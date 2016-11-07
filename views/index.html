@@ -6,40 +6,23 @@
 </head>
 <body>
   <div class="notify" id="notify">
-    <h1><div id="text"></div></h1>
+    <div id="enroll">
+       <h1>
+          Inregistrare angajat:</br>
+          <div id="enrollName"></div>
+       </h1>
+    </div>
+    <h1><div id="notifyText"></div></h1>
   </div>
 
-  <div class="notify" id="scanned">
-    <h1>OK Acest cod a fost scanat deja!<div id="scanned_id"></div></h1>
-    <div id="id_details_table2"></div>
-  </div>      
-
-  <div class="notify" id="err_cid"><h1>EROARE COD!</br>Scaneaza din nou!</h1></div>
   <div class="notify" id="disconnected"><h1>EROARE CONEXIUNE!</br>Nu exista conexiune cu serverul!</h1></div>
   <div class="notify" id="scanner_disconnected"><h1>EROARE SCANNER!</br>Nu exista conexiune cu scanerul!</h1></div>
+
   <script src="socket.io/socket.io.js"></script>
   <script src="js/jquery.min.js"></script>
   <script src="js/clock.js"></script>
   <script type="text/javascript" src="js/underscore-min1.3.3.js"></script>
 
-    <script type="text/template" id="tpl-done">
-            <table class="table">
-                <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Scanat</th>
-                </tr>
-                </thead>
-                <tbody>
-                <% _.each( target, function(i) {%>
-                    <tr<%if (i.urgent){ %> class="urgent"<% } %>>
-                        <td><h1><%= i.id %></h1></td>
-                        <td><%= i.scanat %></td>
-                    </tr>
-                <% }); %>
-                </tbody>
-            </table>
-    </script>
 <div id="left">
   <div class="clock">
   <div id="Date"></div>
@@ -53,12 +36,6 @@
   </div>
 </div>
 
-<!-- <div id="done">
-<div class="title">FINALIZATE</div>
-<table id="done_table">
-</table>
-</div>
--->
 <div id="footer">
 pontaj-s01
 </div>
@@ -129,47 +106,71 @@ var scanned;
 	});
 	socket.on('identify-ok', function(id){
 		console.log('identify-ok: '+id);
-	    notify("green", "Bine ai venit "+id);
+	        notify("green", "Bine ai venit "+id);
 	});
 	socket.on('identify-err', function(id){
 		console.log('Nu am putut citi corect, te rog mai incearca odata!');
-	    notify("red", "Amprenta neidentificata! Incearca din nou!");
+	        notify("red", "Amprenta neidentificata! Incearca din nou!");
 	});
 	socket.on('display-release', function(id){
 		console.log('Ridica degetul de pe cititor, te rog!');
 	});
-	socket.on('enroll-identify', function (data) {
-		console.log('enroll_identify');
+
+
+
+
+
+
+	socket.on('enroll', function (param) {
+		console.log('enroll: ' + param.enrollStep);
+                notify("#202020", "Pasul " + param.enrollStep + " din 4: Scaneaza amprenta!", param.enrollName);
 	});
-	socket.on('enroll-identify-ok', function (data) {
+	socket.on('enroll-ok', function (param) {
+                notify("green", "Pasul " + param.enrollStep + " din 4: Scanare Corecta!", param.enrollName);
 		console.log('enroll_identify-ok');
 	});
-	socket.on('enroll-identify-err', function (data) {
+	socket.on('enroll-err', function (param) {
 		console.log('enroll_identify-err: fingerprint found in db');
+                notify('red', "Pasul " + param.enrollStep + " din 4: Eroare! Incearca din nou!", param.enrollName);
 	});
-	socket.on('enroll', function (data) {
-		console.log('enroll: '+data);
+
+
+
+
+
+	socket.on('enrollIdentify', function (enrollName) {
+		console.log('enroll_identify');
+                notify("yelow", "Pasul 1 din 4: Scaneaza amprenta!", enrollName);
+	});
+	socket.on('enroll-identify-ok', function (enrollName) {
+                notify("green", "Pasul 1 din 4: Scanare Corecta!", enrollName);
+		console.log('enroll_identify-ok');
+	});
+	socket.on('enroll-identify-err', function (enrollName) {
+		console.log('enroll_identify-err: fingerprint found in db');
+                notify("red", "Eroare: Aceasta amprenta este inregistrata deja in baza de date!", enrollName);
+	});
+	socket.on('enroll1', function (enrollName) {
+		console.log('enrollStart');
+                notify("yelow", "Pasul 2 din 4: Scaneaza amprenta!", enrollName);
 	});
 	socket.on('clear', function () {
 		console.log('clear');
 		clearNotify();
 	});
-	socket.on('table_production_json', function (data) {
-		console.log(data);
-                productionTable(data);
-	});
-	socket.on('table_done_json', function (data) {
-		console.log(data);
-                doneTable(data);
-	});
-var clear;
-    function notify(color, msg){
+    var clear;
+    function notify(color, msg, enrollName){
         clearTimeout(clear);
+    if(!enrollName){
+        $('#enroll').hide();
+    } else {
+        $('#enroll').show(); 
+        $('#enrollName').html(enrollName);
+    }
         $('#notify').css("background-color", color);
-	$('#text').html(msg);
+	$('#notifyText').html(msg);
 	$('#notify').show();
     }
-
     function clearNotify(){
 	  clear = setTimeout(function(){
 	    $('#notify').hide();

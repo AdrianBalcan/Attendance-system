@@ -50,7 +50,9 @@ function db() {
     });
 }
 
-db();
+var TEMPLATE = new Buffer(498);
+var enrollID = 0;
+var enrollName = 0;
 
 app.use(express.static(__dirname + '/public'));
 
@@ -61,10 +63,18 @@ app.get('/db', function(req, res) {
     db();
 });
 
-app.get('/enroll', function(req, res) {
-    enroll = 1;
-    res.send('wee');
-    console.log(enroll);
+app.post('/enroll/:id/:name', function(req, res) {
+    if (!isNaN(req.params.id)) {
+        enroll = 1;
+        enrollID = req.params.id;
+        enrollName = req.params.name;
+        res.send('ok');
+        console.log(enroll);
+    } else {
+        console.log('Error! ID param is not a number');
+        console.log(req.params.id);
+        res.send('Error!');
+    }
 });
 
 var fps = new GT511C3('/dev/ttyS0', {
@@ -75,19 +85,6 @@ var fps = new GT511C3('/dev/ttyS0', {
         //baudrate: 9600,
         //debug: true
 });
-
-var TEMPLATE = new Buffer(498);
-
-//function release(callback) {
-//    fps.isPressFinger().then(function() {
-//        setTimeout(function() {
-//            release();
-//        }, 100);
-//    }, function(err) {
-//	io.sockets.in(room).emit('clear');
-//        callback && callback();
-//    });
-//}
 
 function release() {
     return (new Promise(function(resolve, reject) {
@@ -159,30 +156,36 @@ function identify() {
             });
     } else {
         enroll_identify();
-        io.sockets.in(room).emit('enroll', 1);
     }
 }
 
 function enroll_identify() {
+    io.sockets.in(room).emit('enroll', {
+        enrollStep: enroll,
+        enrollName: enrollName
+    });
     if (enroll == 1) {
         fps.captureFinger(0)
             .then(function() {
                 return fps.identify();
             })
             .then(function(ID) {
-                io.sockets.in(room).emit('enroll-identify-err');
+                io.sockets.in(room).emit('enroll-err', {
+                    enrollStep: enroll,
+                    enrollName: enrollName
+                });
                 release().then(function() {
-                    enroll_identify()
+                    enroll_identify();
                 });
             }, function(err) {
-                console.log("identify err: " + fps.decodeError(err));
                 if (err == 4104) {
-                    release().then(function() {
-                        startEnroll()
+                    io.sockets.in(room).emit('enroll-ok', {
+                        enrollStep: enroll,
+                        enrollName: enrollName
                     });
-                    enroll = 2;
-                    console.log(enroll);
-                    io.sockets.in(room).emit('enroll-identify-ok');
+                    release().then(function(){
+                        deleteEnroll();
+                    });
                 } else {
                     setTimeout(function() {
                         enroll_identify();
@@ -192,40 +195,62 @@ function enroll_identify() {
     }
 }
 
+function deleteEnroll() {
+    fps.deleteID(enrollID).then(function() {
+        console.log('deleteID: ' + enrollID + ' deleted!');
+        startEnroll();
+    }, function(err) {
+        console.log('deleteID err: ' + fps.decodeError(err));
+        startEnroll();
+    });
+}
 
 function startEnroll() {
-    if (enroll == 2) {
-        fps.deleteID(0).then(function() {
-            console.log('deleteID: ' + 0 + ' deleted!');
+    setTimeout(function() {
+        fps.enrollStart(enrollID).then(function() {
+            console.log('enrollStart: ' + enrollID + ' enroll started!');
+            enroll = 2;
+            enroll1();
         }, function(err) {
-            console.log('deleteID err: ' + fps.decodeError(err));
-        });
-        setTimeout(function() {
-            fps.enrollStart(0).then(function() {
-                console.log('enrollStart: ' + 0 + ' enroll started!');
-                enroll = 3;
-                release().then(function() {
-                    enroll1();
-                });
-            }, function(err) {
-                console.log('enrollStart error: ' + fps.decodeError(err));
+            console.log('enrollStart error: ' + fps.decodeError(err));
+            io.sockets.in(room).emit('enroll-err', {
+                enrollStep: enroll,
+                enrollName: enrollName
             });
-        }, 100);
-    }
+	    enroll = 0;
+            identify();
+        });
+    }, 1000);
 }
 
 function enroll1() {
+    io.sockets.in(room).emit('enroll', {
+        enrollStep: enroll,
+        enrollName: enrollName
+    });
     fps.captureFinger().then(function() {
-        console.log('captureFinger: OK!');
         fps.enroll1().then(function() {
-            console.log('enroll1 OK!');
-            enroll2();
+	    console.log('enroll 1 ok');
+            io.sockets.in(room).emit('enroll-ok', {
+                enrollStep: enroll,
+                enrollName: enrollName
+            });
+            release().then(function(){
+                enroll = 3;
+                enroll2()
+            });
         }, function(err) {
             console.log('enroll1 error: ' + fps.decodeError(err));
+            io.sockets.in(room).emit('enroll-err', {
+                enrollStep: enroll,
+                enrollName: enrollName
+            });
+	    release().then(function() {
+                enroll1();
+            });
         });
     }, function(err) {
         setTimeout(function() {
-            console.log('captureFinger err: ' + fps.decodeError(err));
             enroll1();
         }, 100);
 
@@ -233,39 +258,71 @@ function enroll1() {
 }
 
 function enroll2() {
+    io.sockets.in(room).emit('enroll', {
+        enrollStep: enroll,
+        enrollName: enrollName
+    });
     fps.captureFinger().then(function() {
         console.log('captureFinger: OK!');
         fps.enroll2().then(function() {
-            console.log('enroll2 OK!');
-            enroll3();
+            console.log('enroll 2 ok');
+            io.sockets.in(room).emit('enroll-ok', {
+                enrollStep: enroll,
+                enrollName: enrollName
+            });
+	    release().then(function() {
+                enroll = 4;
+                enroll3();
+            });
         }, function(err) {
             console.log('enroll2 error: ' + fps.decodeError(err));
+            io.sockets.in(room).emit('enroll-err', {
+                enrollStep: enroll,
+                enrollName: enrollName
+            });
+	    release().then(function (){
+                enroll2();
+            });
         });
     }, function(err) {
         setTimeout(function() {
-            console.log('captureFinger err: ' + fps.decodeError(err));
             enroll2();
+            console.log('captureFinger err: ' + fps.decodeError(err));
         }, 100);
-
     });
 }
 
 function enroll3() {
+    io.sockets.in(room).emit('enroll', {
+        enrollStep: enroll,
+        enrollName: enrollName
+    });
     fps.captureFinger().then(function() {
-        console.log('captureFinger: OK!');
         fps.enroll3().then(function() {
-            console.log('enroll3 OK!');
-            enroll = 0;
-            saveTemplate(ID);
+            console.log('enroll 3 ok');
+            io.sockets.in(room).emit('enroll-ok', {
+                enrollStep: enroll,
+                enrollName: enrollName
+            });
+	    release().then(function() {
+                enroll = 0;
+                identify();
+            });
         }, function(err) {
             console.log('enroll3 error: ' + fps.decodeError(err));
+            io.sockets.in(room).emit('enroll-err', {
+                enrollStep: enroll,
+                enrollName: enrollName
+            });
+	    release().then(function (){
+		enroll = 0;
+                identify();
+            });
         });
     }, function(err) {
         setTimeout(function() {
-            console.log('captureFinger err: ' + fps.decodeError(err));
             enroll3();
         }, 100);
-
     });
 }
 
