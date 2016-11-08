@@ -7,9 +7,6 @@ var async = require('async');
 var fs = require('fs');
 var Promise = require("promise");
 var pg = require('pg');
-var bodyParser = require('body-parser');
-
-app.use(bodyParser.json());
 
 var config = {
     user: 'attendance', //env var: PGUSER
@@ -56,18 +53,26 @@ function db() {
 var TEMPLATE = new Buffer(498);
 var enrollID = 0;
 var enrollName = 0;
-var employeeID = 0;
+
 app.use(express.static(__dirname + '/public'));
 
 app.get('/test', function(req, res) {
     res.sendFile(__dirname + '/views/index.html');
 });
+app.get('/db', function(req, res) {
+    db();
+});
 
 app.post('/enroll', function(req, res) {
-    if (!isNaN(req.body.employeeID)) {
+    console.log(req.body);
+    console.log(req.params);
+});
+
+app.post('/enroll/:id/:name', function(req, res) {
+    if (!isNaN(req.params.id)) {
         enroll = 1;
-        employeeID = req.body.employeeID;
-        enrollName = req.body.name;
+        enrollID = req.params.id;
+        enrollName = req.params.name;
         res.send('ok');
         console.log(enroll);
     } else {
@@ -118,7 +123,7 @@ function identifyt() {
                         identifyt()
                     });
                 }, function(err) {
-                    if (err == 4104 || err == 4106) {
+                    if (err == 4104) {
                         io.sockets.in(room).emit('identify-err');
                         release().then(function() {
                             identifyt()
@@ -143,7 +148,7 @@ function identify() {
                     identify()
                 });
             }, function(err) {
-                if (err == 4104 || err == 4106) {
+                if (err == 4104) {
                     io.sockets.in(room).emit('identify-err');
                     release().then(function() {
                         identify()
@@ -178,12 +183,12 @@ function enroll_identify() {
                     enroll_identify();
                 });
             }, function(err) {
-                if (err == 4104 || err == 4106) {
+                if (err == 4104) {
                     io.sockets.in(room).emit('enroll-ok', {
                         enrollStep: enroll,
                         enrollName: enrollName
                     });
-                    release().then(function() {
+                    release().then(function(){
                         deleteEnroll();
                     });
                 } else {
@@ -217,7 +222,7 @@ function startEnroll() {
                 enrollStep: enroll,
                 enrollName: enrollName
             });
-            enroll = 0;
+	    enroll = 0;
             identify();
         });
     }, 1000);
@@ -230,12 +235,12 @@ function enroll1() {
     });
     fps.captureFinger().then(function() {
         fps.enroll1().then(function() {
-            console.log('enroll 1 ok');
+	    console.log('enroll 1 ok');
             io.sockets.in(room).emit('enroll-ok', {
                 enrollStep: enroll,
                 enrollName: enrollName
             });
-            release().then(function() {
+            release().then(function(){
                 enroll = 3;
                 enroll2()
             });
@@ -245,7 +250,7 @@ function enroll1() {
                 enrollStep: enroll,
                 enrollName: enrollName
             });
-            release().then(function() {
+	    release().then(function() {
                 enroll1();
             });
         });
@@ -270,7 +275,7 @@ function enroll2() {
                 enrollStep: enroll,
                 enrollName: enrollName
             });
-            release().then(function() {
+	    release().then(function() {
                 enroll = 4;
                 enroll3();
             });
@@ -280,7 +285,7 @@ function enroll2() {
                 enrollStep: enroll,
                 enrollName: enrollName
             });
-            release().then(function() {
+	    release().then(function (){
                 enroll2();
             });
         });
@@ -304,15 +309,18 @@ function enroll3() {
                 enrollStep: enroll,
                 enrollName: enrollName
             });
-            getTemplate();
+	    release().then(function() {
+                enroll = 0;
+                identify();
+            });
         }, function(err) {
             console.log('enroll3 error: ' + fps.decodeError(err));
             io.sockets.in(room).emit('enroll-err', {
                 enrollStep: enroll,
                 enrollName: enrollName
             });
-            release().then(function() {
-                enroll = 0;
+	    release().then(function (){
+		enroll = 0;
                 identify();
             });
         });
@@ -323,61 +331,24 @@ function enroll3() {
     });
 }
 
-function getTemplate() {
-    fps.getTemplate(enrollID).then(
+function saveTemplate(ID) {
+    fps.getTemplate(ID).then(
         function(template) {
-            dbInsertTemplate(template);
+            TEMPLATE = new Buffer(template);
+            console.log('getTemplate: ID = ' + ID + ' [' + template.length + '] ' + (new Buffer(template)).toString('hex'));
+            var templateFile = TEMPLATE_PATH + '/template_' + ID_TO_USE + '.tpl';
+            fs.writeFile(templateFile, template, 'binary', function(err) {
+                if (err) {
+                    console.log('getTemplate err: ' + fps.decodeError(err));
+                } else {
+                    console.log('getTemplate: template saved! [' + templateFile + ']');
+                }
+            });
         },
         function(err) {
             console.log('getTemplate err: ' + fps.decodeError(err));
         }
     );
-}
-
-function dbInsertTemplate(template) {
-    pool.connect(function(err, client, done) {
-        if (err) {
-            return console.error('error fetching client from pool', err);
-        }
-        var base64Template = new Buffer(template, 'binary').toString('base64');
-        client.query('INSERT INTO "fingerprints" ("employeeID", "template", "active", "inserted_at", "updated_at") VALUES (\'' + employeeID + '\', \'' + base64Template + '\', true, now(), now()) RETURNING id', function(err, result) {
-            //call `done()` to release the client back to the pool
-            done();
-
-            if (err) {
-                return console.error('error running query', err);
-            } else {
-                templateID = result.rows[0].id;
-                setTemplate(templateID, template);
-            }
-        });
-    });
-
-    pool.on('error', function(err, client) {
-        console.error('idle client error', err.message, err.stack)
-    });
-}
-
-function setTemplate(templateID, template) {
-    console.log('delete: ' + enrollID);
-    fps.deleteID(enrollID).then(function() {
-        console.log('deleteID: ' + enrollID + ' deleted!');
-        fps.setTemplate(templateID, template).then(
-            function() {
-                release().then(function() {
-                    enroll = 0;
-                    identify();
-                });
-                console.log('setTemplate: ID = ' + templateID + ' OK!');
-            },
-            function(err) {
-                console.log('setTemplate err: ' + fps.decodeError(err));
-            }
-        );
-    }, function(err) {
-        console.log('deleteID err: ' + fps.decodeError(err));
-    });
-
 }
 
 function waitFinger() {

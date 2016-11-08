@@ -104,9 +104,8 @@ var scanned;
 			console.log("err :"+err_cid);
 		}
 	});
-	socket.on('identify-ok', function(id){
-		console.log('identify-ok: '+id);
-	        notify("green", "Bine ai venit "+id);
+	socket.on('identify-ok', function(employeeName){
+	        notify("green", "Bine ai venit "+employeeName);
 	});
 	socket.on('identify-err', function(id){
 		console.log('Nu am putut citi corect, te rog mai incearca odata!');
