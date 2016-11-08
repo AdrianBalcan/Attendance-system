@@ -27,6 +27,7 @@ var TEMPLATE = new Buffer(498);
 var enrollID = 0;
 var enrollName = 0;
 var employeeID = 0;
+
 app.use(express.static(__dirname + '/public'));
 
 app.get('/test', function(req, res) {
@@ -79,14 +80,42 @@ function queryName(fingerprintID) {
         if (err) {
             return console.error('error fetching client from pool', err);
         }
-        client.query('SELECT "firstname", "lastname" from "employees" where "id" = (SELECT "employeeID" FROM "fingerprints" where "id" = \''+fingerprintID+'\')', function(err, result) {
+        client.query('SELECT "id", "firstname", "lastname" from "employees" where "id" = (SELECT "employeeID" FROM "fingerprints" where "id" = \''+fingerprintID+'\')', function(err, result) {
+            //call `done()` to release the client back to the pool
+
+            if (err) {
+                return console.error('error running query', err);
+            } else {
+        client.query('SELECT COUNT(id) as count FROM "attendances" where "employeeID" = \''+result.rows[0].id+'\'', function(err, result2) {
+            done();
+	    var count = result2.rows[0].count;
+	    var isEven = function(count) {
+	        if (number % 2 == 0){
+	           return(true);
+	        }else{
+	           return(false);    
+	        }
+	    };
+                var name = result.rows[0].firstname+' '+result.rows[0].lastname;
+		dbInsertAttendance(result.rows[0].id, name);
+            });
+            }
+        });
+    });
+}
+
+function dbInsertAttendance(employeeID, name) {
+    pool.connect(function(err, client, done) {
+        if (err) {
+            return console.error('error fetching client from pool', err);
+        }
+        client.query('INSERT INTO "attendances" ("employeeID", "inserted_at", "updated_at") VALUES (\''+employeeID+'\', now(), now())', function(err, result) {
             //call `done()` to release the client back to the pool
             done();
 
             if (err) {
                 return console.error('error running query', err);
             } else {
-                var name = result.rows[0].firstname+' '+result.rows[0].lastname;
                 io.sockets.in(room).emit('identify-ok', name);
                 release().then(function() {
                     identify()
@@ -94,7 +123,6 @@ function queryName(fingerprintID) {
             }
         });
     });
-
     pool.on('error', function(err, client) {
         // if an error is encountered by a client while it sits idle in the pool
         // the pool itself will emit an error event with both the error and
@@ -103,6 +131,10 @@ function queryName(fingerprintID) {
         // between your application and the database, the database restarts, etc.
         // and so you might want to handle it and at least log it out
         console.error('idle client error', err.message, err.stack)
+                io.sockets.in(room).emit('db-conn-err');
+                release().then(function() {
+                    identify()
+                });
     });
 }
 
@@ -113,6 +145,7 @@ function identify() {
                 return fps.identify();
             })
             .then(function(ID) {
+		console.log(ID);
 		queryName(ID);
             }, function(err) {
                 if (err == 4104 || err == 4106) {
@@ -327,6 +360,10 @@ function dbInsertTemplate(template) {
 
     pool.on('error', function(err, client) {
         console.error('idle client error', err.message, err.stack)
+                io.sockets.in(room).emit('db-conn-err');
+                release().then(function() {
+                    identify()
+                });
     });
 }
 

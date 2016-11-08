@@ -122,21 +122,33 @@ var scanned;
 
 	socket.on('enroll', function (param) {
 		console.log('enroll: ' + param.enrollStep);
-                notify("#202020", "Pasul " + param.enrollStep + " din 4: Scaneaza amprenta!", param.enrollName);
+		if(param.enrollStep == 1){
+                   notify("#202020", "Pasul " + param.enrollStep + " din 4: Scaneaza amprenta!", param.enrollName);
+                } else {
+                   notify("#202020", "Pasul " + param.enrollStep + " din 4: Scaneaza aceeasi amprenta ca in pasul precedent!", param.enrollName);
+		}
 	});
 	socket.on('enroll-ok', function (param) {
                 notify("green", "Pasul " + param.enrollStep + " din 4: Scanare Corecta!", param.enrollName);
 		console.log('enroll_identify-ok');
 	});
 	socket.on('enroll-err', function (param) {
+		if(param.enrollStep == 1){
+                notify('red', "Pasul " + param.enrollStep + " din 4: Amprenta exista deja in baza de date! Incearca din nou cu alta amprenta!", param.enrollName);
+		} else {
 		console.log('enroll_identify-err: fingerprint found in db');
                 notify('red', "Pasul " + param.enrollStep + " din 4: Eroare! Incearca din nou!", param.enrollName);
+                }
 	});
 
 
 
 
 
+	socket.on('db-conn-err', function (enrollName) {
+		console.log('enroll_identify');
+                notify("yelow", "Nu exista connexiune cu baza de date!", enrollName);
+	});
 	socket.on('enrollIdentify', function (enrollName) {
 		console.log('enroll_identify');
                 notify("yelow", "Pasul 1 din 4: Scaneaza amprenta!", enrollName);

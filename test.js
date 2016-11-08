@@ -23,10 +23,10 @@ var fps = new GT511C3('/dev/ttyS0', {
 	//baudrate: 38400,
 	//baudrate: 19200,
 	//baudrate: 9600,
-	//debug: true
+	debug: true,
 });
 
-var ID_TO_USE = 2;
+var ID_TO_USE = 155;
 var TEMPLATE = new Buffer(498);
 var TEMPLATE_PATH = './';
 var IMAGE_PATH = './';
@@ -164,6 +164,7 @@ stdin.on('data', function(key) {
 		fps.enroll3().then(function() {
 			console.log('enroll3 OK!');
 		}, function(err) {
+			console.log(err);
 			console.log('enroll3 error: ' + fps.decodeError(err));
 		});
 	} else if (key == '9') {
