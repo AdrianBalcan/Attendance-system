@@ -23,36 +23,6 @@ var config = {
 
 var pool = new pg.Pool(config);
 
-function db() {
-    console.log('db');
-    pool.connect(function(err, client, done) {
-        console.log('db1');
-        if (err) {
-            return console.error('error fetching client from pool', err);
-        }
-        client.query('SELECT * from employees', function(err, result) {
-            //call `done()` to release the client back to the pool
-            done();
-
-            if (err) {
-                return console.error('error running query', err);
-            }
-            console.log(result.rows[0].number);
-            //output: 1
-        });
-    });
-
-    pool.on('error', function(err, client) {
-        // if an error is encountered by a client while it sits idle in the pool
-        // the pool itself will emit an error event with both the error and
-        // the client which emitted the original error
-        // this is a rare occurrence but can happen if there is a network partition
-        // between your application and the database, the database restarts, etc.
-        // and so you might want to handle it and at least log it out
-        console.error('idle client error', err.message, err.stack)
-    });
-}
-
 var TEMPLATE = new Buffer(498);
 var enrollID = 0;
 var enrollName = 0;
@@ -104,31 +74,36 @@ function release() {
 
 var enroll = 0;
 
-function identifyt() {
-    if (enroll == 0) {
-        console.log('idt');
-        waitFinger().then(function() {
-            fps.captureFinger(0)
-                .then(function() {
-                    return fps.identify();
-                })
-                .then(function(ID) {
-                    io.sockets.in(room).emit('identify-ok', ID);
-                    release().then(function() {
-                        identifyt()
-                    });
-                }, function(err) {
-                    if (err == 4104 || err == 4106) {
-                        io.sockets.in(room).emit('identify-err');
-                        release().then(function() {
-                            identifyt()
-                        });
-                    } else {
-                        identifyt();
-                    }
+function queryName(fingerprintID) {
+    pool.connect(function(err, client, done) {
+        if (err) {
+            return console.error('error fetching client from pool', err);
+        }
+        client.query('SELECT "firstname", "lastname" from "employees" where "id" = (SELECT "employeeID" FROM "fingerprints" where "id" = \''+fingerprintID+'\')', function(err, result) {
+            //call `done()` to release the client back to the pool
+            done();
+
+            if (err) {
+                return console.error('error running query', err);
+            } else {
+                var name = result.rows[0].firstname+' '+result.rows[0].lastname;
+                io.sockets.in(room).emit('identify-ok', name);
+                release().then(function() {
+                    identify()
                 });
+            }
         });
-    }
+    });
+
+    pool.on('error', function(err, client) {
+        // if an error is encountered by a client while it sits idle in the pool
+        // the pool itself will emit an error event with both the error and
+        // the client which emitted the original error
+        // this is a rare occurrence but can happen if there is a network partition
+        // between your application and the database, the database restarts, etc.
+        // and so you might want to handle it and at least log it out
+        console.error('idle client error', err.message, err.stack)
+    });
 }
 
 function identify() {
@@ -138,10 +113,7 @@ function identify() {
                 return fps.identify();
             })
             .then(function(ID) {
-                io.sockets.in(room).emit('identify-ok', ID);
-                release().then(function() {
-                    identify()
-                });
+		queryName(ID);
             }, function(err) {
                 if (err == 4104 || err == 4106) {
                     io.sockets.in(room).emit('identify-err');
