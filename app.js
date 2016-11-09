@@ -34,6 +34,11 @@ app.get('/test', function(req, res) {
     res.sendFile(__dirname + '/views/index.html');
 });
 
+app.get('/qqq', function(req, res) {
+        res.send('ok');
+	queryName(42);
+});
+
 app.post('/enroll', function(req, res) {
     if (!isNaN(req.body.employeeID)) {
         enroll = 1;
@@ -82,26 +87,32 @@ function queryName(fingerprintID) {
         }
         client.query('SELECT "id", "firstname", "lastname" from "employees" where "id" = (SELECT "employeeID" FROM "fingerprints" where "id" = \''+fingerprintID+'\')', function(err, result) {
             //call `done()` to release the client back to the pool
+	    done();
 
             if (err) {
                 return console.error('error running query', err);
             } else {
-        client.query('SELECT COUNT(id) as count FROM "attendances" where "employeeID" = \''+result.rows[0].id+'\'', function(err, result2) {
-            done();
-	    var count = result2.rows[0].count;
-	    var inOut = function(count) {
-	        if (number % 2 == 0){
-	           return(true);
-	        } else {
-	           return(false);    
-	        }
-	    };
                 var name = result.rows[0].firstname+' '+result.rows[0].lastname;
-		dbInsertAttendance(result.rows[0].id, name, inOut);
-            });
+		var employeeID = result.rows[0].id;
+		inOut(employeeID, name);
             }
-        });
     });
+});
+}
+
+function inOut(employeeID, name) {
+console.log(name);
+    pool.connect(function(err, client, done) {
+        if (err) {
+            return console.error('error fetching client from pool', err);
+        }
+        client.query('SELECT COUNT(id) as count FROM "attendances" where "employeeID" = \''+employeeID+'\'', function(err, result) {
+            done();
+	    var count = result.rows[0].count;
+	    var inOut = count % 2;
+	    dbInsertAttendance(employeeID, name, inOut);
+            });
+        });
 }
 
 function dbInsertAttendance(employeeID, name, inOut) {
@@ -116,7 +127,11 @@ function dbInsertAttendance(employeeID, name, inOut) {
             if (err) {
                 return console.error('error running query', err);
             } else {
-                io.sockets.in(room).emit('identify-ok', {name: name, inOut: inOut});
+		var params = {
+		    name: name,
+		    inOut: inOut
+                };
+                io.sockets.in(room).emit('identify-ok', params);
                 release().then(function() {
                     identify()
                 });

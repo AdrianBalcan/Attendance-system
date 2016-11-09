@@ -104,9 +104,12 @@ var scanned;
 			console.log("err :"+err_cid);
 		}
 	});
-	socket.on('identify-ok', function(employeeName){
-           if(employeeName.inOut){ 
-	        notify("green", "Bine ai venit "+employeeName.name);
+	socket.on('identify-ok', function(employee){
+	console.log(employee);
+           if(employee.inOut == 0){ 
+	        notify("green", "Bine ai venit "+employee.name);
+           } else {
+	        notify("blue", "La revedere, "+employee.name);
            }
 	});
 	socket.on('identify-err', function(id){

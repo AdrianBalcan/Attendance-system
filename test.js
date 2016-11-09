@@ -23,7 +23,7 @@ var fps = new GT511C3('/dev/ttyS0', {
 	//baudrate: 38400,
 	//baudrate: 19200,
 	//baudrate: 9600,
-	debug: true,
+	//debug: true,
 });
 
 var ID_TO_USE = 155;
