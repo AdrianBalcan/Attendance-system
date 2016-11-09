@@ -105,7 +105,9 @@ var scanned;
 		}
 	});
 	socket.on('identify-ok', function(employeeName){
-	        notify("green", "Bine ai venit "+employeeName);
+           if(employeeName.inOut){ 
+	        notify("green", "Bine ai venit "+employeeName.name);
+           }
 	});
 	socket.on('identify-err', function(id){
 		console.log('Nu am putut citi corect, te rog mai incearca odata!');

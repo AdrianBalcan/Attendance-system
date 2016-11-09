@@ -89,22 +89,22 @@ function queryName(fingerprintID) {
         client.query('SELECT COUNT(id) as count FROM "attendances" where "employeeID" = \''+result.rows[0].id+'\'', function(err, result2) {
             done();
 	    var count = result2.rows[0].count;
-	    var isEven = function(count) {
+	    var inOut = function(count) {
 	        if (number % 2 == 0){
 	           return(true);
-	        }else{
+	        } else {
 	           return(false);    
 	        }
 	    };
                 var name = result.rows[0].firstname+' '+result.rows[0].lastname;
-		dbInsertAttendance(result.rows[0].id, name);
+		dbInsertAttendance(result.rows[0].id, name, inOut);
             });
             }
         });
     });
 }
 
-function dbInsertAttendance(employeeID, name) {
+function dbInsertAttendance(employeeID, name, inOut) {
     pool.connect(function(err, client, done) {
         if (err) {
             return console.error('error fetching client from pool', err);
@@ -116,7 +116,7 @@ function dbInsertAttendance(employeeID, name) {
             if (err) {
                 return console.error('error running query', err);
             } else {
-                io.sockets.in(room).emit('identify-ok', name);
+                io.sockets.in(room).emit('identify-ok', {name: name, inOut: inOut});
                 release().then(function() {
                     identify()
                 });
