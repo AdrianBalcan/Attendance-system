@@ -26,7 +26,7 @@ var fps = new GT511C3('/dev/ttyS0', {
 	//debug: true,
 });
 
-var ID_TO_USE = 155;
+var ID_TO_USE = 242;
 var TEMPLATE = new Buffer(498);
 var TEMPLATE_PATH = './';
 var IMAGE_PATH = './';
